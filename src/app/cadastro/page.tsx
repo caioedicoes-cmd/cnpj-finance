@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/Button";
 
 export default function CadastroPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,6 +23,7 @@ export default function CadastroPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const supabase = createClient();
     const emailRedirectTo = `${window.location.origin}/auth/callback`;
     const { data, error } = await supabase.auth.signUp({
       email,
