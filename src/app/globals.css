@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  /* Paper & ink -- a cool ledger palette, not the usual warm-cream default */
+  --paper: #f5f6f4;
+  --paper-raised: #ffffff;
+  --ink: #10151f;
+  --ink-muted: #5b6472;
+  --ink-faint: #9aa2ad;
+  --line: #e2e4de;
+  --line-strong: #c9cdc4;
+
+  /* Single accent: a stamped rust -- restrained, not neon */
+  --stamp: #b4460f;
+  --stamp-ink: #7c300a;
+  --stamp-tint: #f4e4da;
+
+  /* Ledger semantics */
+  --positive: #1f6d47;
+  --positive-tint: #e2eee6;
+  --negative: #a83324;
+  --negative-tint: #f4e2de;
+
+  --font-display: var(--font-fraunces);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-plex-mono);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-stamp: var(--stamp);
+  --color-stamp-ink: var(--stamp-ink);
+  --color-stamp-tint: var(--stamp-tint);
+  --color-positive: var(--positive);
+  --color-positive-tint: var(--positive-tint);
+  --color-negative: var(--negative);
+  --color-negative-tint: var(--negative-tint);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+* {
+  border-color: var(--line);
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display), serif;
+}
+
+.font-mono-figures {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Signature: faint ruled-ledger backdrop behind the dashboard hero */
+.ledger-rules {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 27px,
+    var(--line) 28px
+  );
+}
+
+::selection {
+  background: var(--stamp-tint);
+  color: var(--stamp-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
