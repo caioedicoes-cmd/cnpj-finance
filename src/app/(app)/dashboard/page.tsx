@@ -71,7 +71,7 @@ export default async function DashboardPage() {
         <h1 className="font-display text-2xl text-ink">Dashboard</h1>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-4">
         <Card label="Faturamento do mês" value={monthRevenue} tone="positive" />
         <Card label="Despesas do mês" value={monthExpense} tone="negative" />
         <Card label="Resultado do mês" value={monthResult} tone={monthResult >= 0 ? "positive" : "negative"} />
@@ -105,9 +105,9 @@ function Card({
 }) {
   const toneClass = tone === "positive" ? "text-positive" : "text-negative";
   return (
-    <div className="rounded-2xl border border-line bg-paper-raised p-4">
+    <div className="rounded-2xl border border-line bg-paper-raised p-3.5 sm:p-4">
       <p className="text-xs font-medium text-ink-muted">{label}</p>
-      <p className={`font-mono-figures mt-2 text-lg font-semibold sm:text-xl ${toneClass}`}>
+      <p className={`font-mono-figures mt-2 text-base font-semibold leading-tight sm:text-xl ${toneClass}`}>
         {formatBRL(value)}
       </p>
     </div>

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function AtualizarSenhaPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,6 @@ export default function AtualizarSenhaPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function LoginForm() {
   const router = useRouter();
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,10 +20,10 @@ export default function LoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
+      console.error("Supabase login error:", error.message, error);
       setError("E-mail ou senha incorretos.");
       return;
     }
