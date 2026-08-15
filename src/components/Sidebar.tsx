@@ -11,6 +11,7 @@ import {
   BarChart3,
   Tag,
   Building2,
+  KeyRound,
   LogOut,
   Menu,
   X,
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/faturamento", label: "Faturamento", icon: BarChart3 },
   { href: "/categorias", label: "Categorias", icon: Tag },
   { href: "/empresa", label: "Empresa", icon: Building2 },
+  { href: "/conta", label: "Minha conta", icon: KeyRound },
 ];
 
 export function Sidebar({ nomeFantasia }: { nomeFantasia: string }) {
