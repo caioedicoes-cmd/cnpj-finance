@@ -16,6 +16,30 @@ function formatCNPJ(raw: string): string {
     .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
+// Extrai uma mensagem legível de qualquer formato de erro que possa chegar
+// aqui (PostgrestError, Error nativo, AuthError, string, etc). Erros nativos
+// do JS têm `message` como propriedade não-enumerável, então um simples
+// `console.error(error)` ou `JSON.stringify(error)` pode mostrar "{}" mesmo
+// quando o erro tem informação útil — por isso extraímos os campos na mão.
+function describeError(err: unknown): string {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message || err.name || "Erro desconhecido";
+  if (typeof err === "object") {
+    const anyErr = err as Record<string, unknown>;
+    const parts = [anyErr.message, anyErr.details, anyErr.hint, anyErr.code]
+      .filter((v) => typeof v === "string" && v.length > 0);
+    if (parts.length > 0) return parts.join(" — ");
+    try {
+      const json = JSON.stringify(err, Object.getOwnPropertyNames(err));
+      if (json && json !== "{}") return json;
+    } catch {
+      // ignore
+    }
+  }
+  return "Erro desconhecido";
+}
+
 export function EmpresaForm({ company }: { company: Company | null }) {
   const router = useRouter();
   const supabase = createClient();
@@ -32,39 +56,73 @@ export function EmpresaForm({ company }: { company: Company | null }) {
     setError(null);
     setSaved(false);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    console.log("EmpresaForm: current user:", user);
-    if (!user) {
-      setLoading(false);
-      setError("Usuário não autenticado. Faça login novamente.");
-      return;
-    }
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    const payload = { nome, nome_fantasia: nomeFantasia || null, cnpj, user_id: user.id };
+      if (userError) {
+        console.error("Supabase error getting user:", describeError(userError), userError);
+        setError("Usuário não autenticado. Faça login novamente.");
+        return;
+      }
+      if (!user) {
+        setError("Usuário não autenticado. Faça login novamente.");
+        return;
+      }
 
-    const { error } = company
-      ? await supabase.from("companies").update(payload).eq("id", company.id)
-      : await supabase.from("companies").insert(payload);
+      const cnpjDigits = cnpj.replace(/\D/g, "");
+      if (cnpjDigits.length !== 14) {
+        setError("CNPJ inválido. Confira se os 14 dígitos foram preenchidos.");
+        return;
+      }
 
-    setLoading(false);
+      const payload = { nome, nome_fantasia: nomeFantasia || null, cnpj, user_id: user.id };
 
-    if (error) {
-      console.error("Supabase error saving company:", error);
-      const details = [error.message, error.details, error.hint].filter(Boolean).join(" — ");
-      setError(details || "Não foi possível salvar. Verifique os dados e tente novamente.");
-      return;
-    }
+      // .select().single() garante que recebemos de volta a linha salva (ou
+      // um erro explícito) em vez de um sucesso silencioso quando o RLS
+      // bloqueia a operação sem afetar nenhuma linha.
+      const { data, error: saveError } = company
+        ? await supabase
+            .from("companies")
+            .update(payload)
+            .eq("id", company.id)
+            .select()
+            .single()
+        : await supabase.from("companies").insert(payload).select().single();
 
-    if (!company) {
-      router.push("/dashboard");
+      if (saveError) {
+        console.error("Supabase error saving company:", describeError(saveError), saveError);
+        setError(describeError(saveError) || "Não foi possível salvar. Verifique os dados e tente novamente.");
+        return;
+      }
+
+      if (!data) {
+        setError("Não foi possível confirmar o salvamento. Tente novamente.");
+        return;
+      }
+
+      if (!company) {
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      setSaved(true);
       router.refresh();
-      return;
+    } catch (err) {
+      // Captura falhas de rede/config (ex: variáveis de ambiente do Supabase
+      // ausentes ou incorretas), que chegam como exceção e não como
+      // `{ error }` no retorno do client.
+      console.error("Unexpected error saving company:", describeError(err), err);
+      setError(
+        describeError(err) ||
+          "Erro de conexão com o servidor. Verifique sua internet e tente novamente."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setSaved(true);
-    router.refresh();
   }
 
   return (

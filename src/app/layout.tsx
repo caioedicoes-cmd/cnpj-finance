@@ -35,6 +35,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body
         className={`${fraunces.variable} ${inter.variable} ${plexMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         {children}
       </body>

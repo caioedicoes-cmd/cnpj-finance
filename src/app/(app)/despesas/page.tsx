@@ -16,9 +16,10 @@ export default async function DespesasPage() {
 
   if (!company) redirect("/empresa");
 
-  const [{ data: categories }, { data: expenses }] = await Promise.all([
+  const [{ data: categories }, { data: expenses }, { data: fixedExpenses }] = await Promise.all([
     supabase.from("categories").select("*").eq("company_id", company.id).eq("type", "expense").order("name"),
     supabase.from("expenses").select("*").eq("company_id", company.id),
+    supabase.from("fixed_expenses").select("*").eq("company_id", company.id).eq("active", true),
   ]);
 
   return (
@@ -32,6 +33,7 @@ export default async function DespesasPage() {
         companyId={company.id}
         categories={categories ?? []}
         initialItems={expenses ?? []}
+        fixedExpenses={fixedExpenses ?? []}
       />
     </div>
   );

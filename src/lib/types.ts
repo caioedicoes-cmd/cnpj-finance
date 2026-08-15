@@ -33,4 +33,15 @@ export interface ExpenseItem {
   date: string;
   amount: number;
   description: string | null;
+  fixed_expense_id?: string | null;
+}
+
+export interface FixedExpense {
+  id: string;
+  company_id: string;
+  category_id: string | null;
+  description: string;
+  amount: number;
+  day_of_month: number;
+  active: boolean;
 }

@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Repeat } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { MonthFilter } from "@/components/MonthFilter";
 import { formatBRL, formatDateBR, parseBRLInput } from "@/lib/format";
-import type { Category } from "@/lib/types";
+import type { Category, FixedExpense } from "@/lib/types";
 
 interface Item {
   id: string;
@@ -18,6 +18,7 @@ interface Item {
   description: string | null;
   client?: string | null;
   category_id: string | null;
+  fixed_expense_id?: string | null;
 }
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
   companyId: string;
   categories: Category[];
   initialItems: Item[];
+  fixedExpenses?: FixedExpense[];
 }
 
 const TABLE = { revenue: "revenues", expense: "expenses" } as const;
@@ -45,7 +47,7 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function LancamentosManager({ kind, companyId, categories, initialItems }: Props) {
+export function LancamentosManager({ kind, companyId, categories, initialItems, fixedExpenses }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const table = TABLE[kind];
@@ -59,6 +61,7 @@ export function LancamentosManager({ kind, companyId, categories, initialItems }
   const [editing, setEditing] = useState<Item | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [launching, setLaunching] = useState(false);
 
   const [date, setDate] = useState(todayISO());
   const [amount, setAmount] = useState("");
@@ -84,6 +87,56 @@ export function LancamentosManager({ kind, companyId, categories, initialItems }
   );
 
   const total = filtered.reduce((sum, i) => sum + i.amount, 0);
+
+  const pendingFixed = useMemo(() => {
+    if (!fixedExpenses) return [];
+    const launchedIds = new Set(
+      items
+        .filter((i) => {
+          const d = new Date(i.date + "T00:00:00");
+          return d.getMonth() === month && d.getFullYear() === year;
+        })
+        .map((i) => i.fixed_expense_id)
+        .filter(Boolean)
+    );
+    return fixedExpenses.filter((fe) => fe.active && !launchedIds.has(fe.id));
+  }, [fixedExpenses, items, month, year]);
+
+  async function handleLaunchFixed() {
+    if (pendingFixed.length === 0) return;
+    setLaunching(true);
+    setError(null);
+    try {
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const payload = pendingFixed.map((fe) => ({
+        company_id: companyId,
+        category_id: fe.category_id,
+        description: fe.description,
+        amount: fe.amount,
+        date: `${year}-${String(month + 1).padStart(2, "0")}-${String(
+          Math.min(fe.day_of_month, daysInMonth)
+        ).padStart(2, "0")}`,
+        fixed_expense_id: fe.id,
+      }));
+
+      const { data, error: launchError } = await supabase
+        .from("expenses")
+        .insert(payload)
+        .select();
+
+      if (launchError) {
+        setError("Não foi possível lançar as despesas fixas. Tente novamente.");
+        return;
+      }
+
+      setItems((prev) => [...prev, ...((data as Item[]) ?? [])]);
+      router.refresh();
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
+    } finally {
+      setLaunching(false);
+    }
+  }
 
   function openNew() {
     setEditing(null);
@@ -168,6 +221,21 @@ export function LancamentosManager({ kind, companyId, categories, initialItems }
           <Plus size={16} /> Nova {label.singular}
         </Button>
       </div>
+
+      {pendingFixed.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stamp/30 bg-stamp-tint px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-stamp-ink">
+            <Repeat size={16} />
+            <span>
+              {pendingFixed.length} despesa{pendingFixed.length > 1 ? "s" : ""} fixa
+              {pendingFixed.length > 1 ? "s" : ""} pendente{pendingFixed.length > 1 ? "s" : ""} neste mês
+            </span>
+          </div>
+          <Button onClick={handleLaunchFixed} disabled={launching} size="sm" variant="secondary">
+            {launching ? "Lançando…" : "Lançar agora"}
+          </Button>
+        </div>
+      )}
 
       <div className="mb-4 flex items-baseline justify-between rounded-xl border border-line bg-paper-raised px-4 py-3">
         <span className="text-sm text-ink-muted">Total no período</span>
